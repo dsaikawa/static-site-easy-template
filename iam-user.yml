@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  GroupList:
+    Type: List<String>
+    Description: ex. Hoge,Fuga,Piyo
+
+  UserName:
+    Type: String
+
+  CreatedBy:
+    Type: String
+  
+  Password:
+    Type: String
+
+Resources:
+  IAMUser:
+    Type: AWS::IAM::User
+    DeletionPolicy: Retain
+    Properties:
+      UserName:
+        Ref: UserName
+      Groups:
+        Ref: GroupList
+      LoginProfile:
+        Password:
+          Ref: Password
+        PasswordResetRequired: false
+      Tags:
+        - Key: CreatedBy
+          Value: 
+            Ref: CreatedBy
+
+Outputs:
+  UserProfile:
+    Value:
+      Fn::Sub: '{"UserName":"${UserName}","Password":"${Password}","ConsoleLoginLink":"https://${AWS::AccountId}.signin.aws.amazon.com/console"}'
