@@ -4,6 +4,15 @@ Parameters:
   BucketName:
     Type: String
 
+  Domain:
+    Type: String
+
+  HostedZoneId:
+    Type: String
+
+  AcmCertificateArn:
+    Type: String
+
 Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
@@ -54,7 +63,28 @@ Resources:
                 Fn::Sub: origin-access-identity/cloudfront/${S3OriginAccessIdentity}
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
-          ViewerProtocolPolicy: allow-all
+          ViewerProtocolPolicy: https-only
           ForwardedValues:
             QueryString: false
         DefaultRootObject: index.html
+        ViewerCertificate:
+          SslSupportMethod: sni-only
+          AcmCertificateArn:
+            Ref: AcmCertificateArn
+        Aliases:
+          - Ref: Domain
+
+  Route53RecordSet:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name:
+        Ref: Domain
+      Type: A
+      AliasTarget:
+        DNSName:
+          Fn::GetAtt:
+            - CloudFront
+            - DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+      HostedZoneId:
+        Ref: HostedZoneId
