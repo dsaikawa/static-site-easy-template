@@ -11,10 +11,16 @@ Resources:
       BucketName:
         Ref: BucketName
       PublicAccessBlockConfiguration:
-        BlockPublicAcls: false
-        BlockPublicPolicy: false
-        IgnorePublicAcls: false
-        RestrictPublicBuckets: false
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  S3OriginAccessIdentity:
+    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "for S3 access"
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -22,11 +28,33 @@ Resources:
       Bucket:
         Ref: S3Bucket
       PolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
+        Id: BucketPolicyForCloudFront
         Statement:
-          - Sid: Statement1
+          - Action:
+              - s3:GetObject
             Effect: Allow
-            Principal: '*'
-            Action: s3:GetObject
-            Resource: 
-              Fn::Sub: arn:aws:s3:::${BucketName}/*
+            Resource:
+              Fn::Sub: "arn:aws:s3:::${S3Bucket}/*"
+            Principal:
+              AWS:
+                - Fn::Sub: "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${S3OriginAccessIdentity}"
+
+  CloudFront:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: S3Origin
+            DomainName:
+              Fn::GetAtt: S3Bucket.DomainName
+            S3OriginConfig:
+              OriginAccessIdentity:
+                Fn::Sub: origin-access-identity/cloudfront/${S3OriginAccessIdentity}
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: allow-all
+          ForwardedValues:
+            QueryString: false
+        DefaultRootObject: index.html
